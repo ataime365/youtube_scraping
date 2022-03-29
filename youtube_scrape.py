@@ -2,6 +2,15 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import pandas as pd
+# from email.mime.text import MIMEText
+# import smtplib
+import yagmail
+from dotenv import load_dotenv, find_dotenv
+import os
+import json
+
+load_dotenv(find_dotenv())
+gmail_password = os.getenv('GMAIL_PASSWORD')
 
 youtube_url = 'https://www.youtube.com/feed/trending'
 
@@ -15,13 +24,7 @@ def get_driver():
     driver = webdriver.Chrome(options=options)
     return driver
 
-if __name__ == "__main__": 
-    driver = get_driver()
-    driver.maximize_window()
-    driver.get(youtube_url)
-    time.sleep(10)
-    print(driver.title)
-
+def top_ten(driver):
     container = driver.find_elements(By.TAG_NAME ,"ytd-video-renderer") #This was already 96
     Top_ten_list = []
     for cont in container[0:10]:
@@ -43,13 +46,31 @@ if __name__ == "__main__":
         print(title, url, views, thumbnail_url, des, channel)
         data_dict = {'title':title, 'url': url, 'views':views, 'thumbnail_url':thumbnail_url, 'description':des, 'channel':channel}
         Top_ten_list.append(data_dict)
+    return Top_ten_list
+
+
+def send_email(Top_ten_list):
+    email = yagmail.SMTP(user='ataime365@gmail.com' , password=gmail_password)
+    body = json.dumps(Top_ten_list, indent=2) #python dict or list of dicts to a string
+    email.send(to='ataime15@gmail.com',
+            subject="Youtube Trending videos",
+            contents=body, 
+            attachments= "trending.csv")
+
+if __name__ == "__main__": 
+    driver = get_driver()
+    driver.maximize_window()
+    driver.get(youtube_url)
+    time.sleep(10)
+    print(driver.title)
+    Top_ten_list = top_ten(driver)
         
     # print(Top_ten_list)
     videos_df = pd.DataFrame(Top_ten_list)
     print(videos_df)
     videos_df.to_csv('trending.csv', index=False)
-        
-        
+                
+    send_email(Top_ten_list)
         
         
         
